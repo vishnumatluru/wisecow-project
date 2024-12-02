@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    tools{
+        jdk 'jdk'
+        nodejs 'nodejs'
+        }
+       
+    stages {
+        stage('clean workspace'){
+            steps{
+                cleanWs()
+            }
+        }
+        stage('git checkout') {
+            steps {
+                git 'https://github.com/vishnumatluru/wisecow-project.git'
+            }
+        }
+        
+        stage('TRIVY FS SCAN') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
+            }
+        }
+  
+        stage('build') {
+            steps {
+               sh 'docker build -t  wisecow .'
+            }
+        }
+         
+          stage('trivy-image-scan') {
+            steps {
+               sh 'trivy image wisecow'
+            }
+        }
+        stage('dockerhub push') {
+            steps {
+                  script {
+              withDockerRegistry(credentialsId: 'Docker', toolName: 'Docker') {
+                      sh '''
+                        docker tag tetrisv1 vishnumatluru/wisecow:latest
+                        docker push vishnumatluru/wisecow:latest
+                      '''
+                  }                
+                }
+            }
+        
+        }
+         
+                 
+        
+           
+          
+     }
+}
